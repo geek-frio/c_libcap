@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <netinet/if_ether.h>
 #include <headers/find_device.h>
+#include <headers/packet_analyze.h>
 /**
  * 利用pcap_compile将表达式str转化为过滤程序
  * fp指向bpf_program结构
@@ -25,25 +26,29 @@ int main(void)
     get_dev_ip4_netmask(dev, &ip, &mask);
 
     // 打开并激活抓包,支持最大包 8192, 非混杂模式, 超时1s
+    printf("Start to open live\n");
     handle = pcap_open_live(dev, BUFSIZ, 0, 1000, error_buffer);
     if (handle == NULL)
     {
         printf("Could not open %s - %s \n", dev, error_buffer);
         return 1;
     }
-    // 生成规则program
-    struct bpf_program filter;
-    char filter_exp[] = "port 9090";
-    bpf_u_int32 subnet_mask, ip;
-    if (pcap_compile(handle, &filter, filter_exp, 0, mask) == -1)
-    {
-        printf("bad filter");
-        return -1;
-    }
-    // 设置filter生效
-    if(pcap_setfilter(handle, &filter) == -1){
-        printf("set filter failed, %s \n", pcap_geterr(handle));
-        return -1;
-    }
+    printf("open live finish\n");
+    // // 生成规则program
+    // struct bpf_program filter;
+    // char filter_exp[] = "port 9090";
+    // if (pcap_compile(handle, &filter, filter_exp, 0, mask) == -1)
+    // {
+    //     printf("bad filter");
+    //     return -1;
+    // }
+    // // 设置filter生效
+    // if(pcap_setfilter(handle, &filter) == -1){
+    //     printf("set filter failed, %s \n", pcap_geterr(handle));
+    //     return -1;
+    // }
+    printf("start to loop\n");
+    pcap_loop(handle, 0, header_payload_anly_handler, NULL);
+
     return 0;
 }

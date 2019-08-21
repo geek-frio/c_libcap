@@ -51,6 +51,7 @@ void header_payload_anly_handler(
     const struct pcap_pkthdr *header,
     const u_char *packet)
 {
+    printf("handler is called!\n");
     struct ether_header *eth_header;
     eth_header = (struct ether_header *)packet;
 
@@ -90,7 +91,7 @@ void header_payload_anly_handler(
     u_char protocol = *(ip_header + 9);
     if (protocol != IPPROTO_TCP)
     {
-        printf("packet is not tcp packet,so skip \n");
+        printf("packet is not tcp packet, protocol:%d,so skip \n", protocol);
         return;
     }
 

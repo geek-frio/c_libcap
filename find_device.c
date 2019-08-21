@@ -1,10 +1,6 @@
-#include <stdio.h>
-#include <pcap.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <arpa/inet.h>
 #include <headers/find_device.h>
+#include <string.h>
+#include <stdio.h>
 
 int get_dev_ip4_netmask(char *dev, bpf_u_int32 *ip, bpf_u_int32 *mask)
 {
@@ -21,8 +17,12 @@ int get_dev_ip4_netmask(char *dev, bpf_u_int32 *ip, bpf_u_int32 *mask)
 
     // 临时变量放置链表的element
     pcap_if_t *device;
-    for (device = alldevsp; dev != NULL; device = device->next)
+    for (device = alldevsp; device != NULL; device = device->next)
     {
+        if(strcmp(device->name, dev)){
+            continue;
+        }
+        printf("device name is:%s\n", device->name);
         struct pcap_addr *addresses;
         // 获取接口对应的ip地址,会有多种的情况,比如ipv4和ipv6
         for (addresses = device->addresses; addresses != NULL; addresses = addresses->next)
