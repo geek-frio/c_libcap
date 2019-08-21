@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "find_device.h": "c"
+        "find_device.h": "c",
+        "packet_analyze.h": "c"
     }
 }
