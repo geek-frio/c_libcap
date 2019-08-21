@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 
     /**
      * device_name: 设备名称
-     * BUFSIZE: 最大抓多少字节的包
+     * BUFSIZE(snapshot length): 最大抓多少字节的包
      * prmisc: 将网卡设置为混淆模式
      * tm_out: 超时时间
      * error_buffer: 错误控制 
