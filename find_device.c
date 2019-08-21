@@ -25,10 +25,9 @@ int main(int argc, char **argv)
     bpf_u_int32 maskp;
     lookup_return_code = pcap_lookupnet(device, &netp, &maskp, error_buffer);
 
-    // if(lookup_return_code == -1) {
-    //     printf("%s \n", error_buffer);
-    //     return 1;
-    // }
+    if(lookup_return_code == -1) {
+        printf("%s \n", error_buffer);
+    }
 
     /* 获取所有网络设备的信息  */
     pcap_if_t *alldevsp;
