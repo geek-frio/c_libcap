@@ -5,6 +5,46 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 
+/**
+ * 根据device name 获取ip和mask信息
+ * 如果调用失败,返回-1
+ */
+int get_dev_ip4_netmask(char *dev, bpf_u_int32 *ip, bpf_u_int32 *mask);
+
+int get_dev_ip4_netmask(char *dev, bpf_u_int32 *ip, bpf_u_int32 *mask)
+{
+    char error_buffer[PCAP_ERRBUF_SIZE];
+    int lookup_return_code;
+
+    pcap_if_t *alldevsp;
+    lookup_return_code = pcap_findalldevs(&alldevsp, error_buffer);
+    if (lookup_return_code == -1)
+    {
+        fprintf(stderr, "find all devs info failed!");
+        return -1;
+    }
+
+    pcap_if_t *device;
+    for (device = alldevsp; dev != NULL; device = device->next)
+    {
+        struct pcap_addr *addresses;
+        // 获取接口对应的ip地址,会有多种的情况,比如ipv4和ipv6
+        for (addresses = alldevsp; addresses != NULL; addresses = addresses->next)
+        {
+            // 判断是ipv4的情况才会进行获取
+            if (addresses->addr->sa_family == AF_INET && addresses->addr && addresses->netmask)
+            {
+                struct sockaddr_in *ip4_addr = (struct sockaddr_in *) addresses->addr;
+                struct sockaddr_in *netmask4_addr = (struct sockaddr_in *)addresses->netmask;
+                *ip = ip4_addr->sin_addr.s_addr;
+                *mask = netmask4_addr->sin_addr.s_addr;
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     char *device;
@@ -25,7 +65,8 @@ int main(int argc, char **argv)
     bpf_u_int32 maskp;
     lookup_return_code = pcap_lookupnet(device, &netp, &maskp, error_buffer);
 
-    if(lookup_return_code == -1) {
+    if (lookup_return_code == -1)
+    {
         printf("%s \n", error_buffer);
     }
 
