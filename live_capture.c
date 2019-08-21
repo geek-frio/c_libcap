@@ -8,6 +8,11 @@ typedef void (*pcap_handler)(u_char *, const struct pcap_pkthdr *, const u_char 
 
 void my_packet_handler(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 void print_packet_info(const u_char *packet, struct pcap_pkthdr packet_header);
+void data_payload_handler(
+    u_char *args,
+    const struct pcap_pkthdr *header,
+    const u_char *packet);
+
 /**
  * p: device handle
  * cnt: 抓包数量设置(0: 无限制数量抓包)
@@ -18,7 +23,7 @@ int pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user);
 
 int main(int argc, char *argv[])
 {
-    char *device_name = "lo";
+    char *device_name = "capuse";
     pcap_t *handle;
     // 关闭混淆模式
     int prmisc = 0;
@@ -50,7 +55,7 @@ int main(int argc, char *argv[])
     printf("call pcap_loop \n");
     // 2.循环抓包
     // 100表示抓包的个数
-    pcap_loop(handle, 10, my_packet_handler, NULL);
+    pcap_loop(handle, 10, data_payload_handler, NULL);
     // 看看如何抓取
     pcap_close(handle);
     return 0;
@@ -114,5 +119,53 @@ void data_payload_handler(
 
     int ethernet_header_length = 14;
     /*各种头部指针定义 */
-    
+    // ip 指针
+    const u_char *ip_header;
+    // tcp 指针
+    const u_char *tcp_header;
+    // payload 指针
+    const u_char *payload;
+
+    /* 各种头部长度 */
+    int ip_header_length;
+    int tcp_header_length;
+    int payload_length;
+
+    ip_header = packet + ethernet_header_length;
+    // ip_header长度为ip header第一个字节的后四位
+    ip_header_length = ((*ip_header) & 0x0F);
+    // ip包的长度要放大4倍
+    ip_header_length = ip_header_length << 2;
+    printf("ip header length is:%d\n", ip_header_length);
+    // 再往后走9个字节就可以获取Ip中运载的协议类型字段
+    u_char protocol = *(ip_header + 9);
+    if(protocol != IPPROTO_TCP){
+        printf("packet is not tcp packet,so skip \n");
+        return;
+    }
+
+    /* 进入tcp分析章节 */
+    tcp_header = ip_header + ip_header_length;
+    /* tcp header中的第12个字节, 前4个字节存储大小,所有要右移4位, 大小最终还要乘以4倍 */
+    tcp_header_length = (*(tcp_header + 12) & 0xF0) >> 4 << 2;
+    printf("tcp header length is bytes:%d \n", tcp_header_length);
+
+    int total_header_len = ethernet_header_length + ip_header_length + tcp_header_length;
+    printf("all the header length is ethernet frame is:%d \n", total_header_len);
+
+    payload_length = header->caplen - total_header_len;
+    printf("payload size is:%d \n", payload_length);
+
+    payload = packet + total_header_len;
+    printf("Memory address where payload begins:%p \n", payload);
+
+    if(payload_length > 0){
+        const u_char *temp_pointer = payload;
+        int i;
+        for(i = 0; i < payload_length; i++){
+            printf("%c", *temp_pointer);
+            temp_pointer ++;
+        }
+    }
+    return;
 }
