@@ -18,7 +18,7 @@ int main(void)
 {
     pcap_t *handle;
     char error_buffer[PCAP_ERRBUF_SIZE];
-    char *dev = "capuse";
+    char *dev = "lo";
 
     // 获取网卡的ip和mask信息
     bpf_u_int32 ip;
@@ -34,19 +34,19 @@ int main(void)
         return 1;
     }
     printf("open live finish\n");
-    // // 生成规则program
-    // struct bpf_program filter;
-    // char filter_exp[] = "port 9090";
-    // if (pcap_compile(handle, &filter, filter_exp, 0, mask) == -1)
-    // {
-    //     printf("bad filter");
-    //     return -1;
-    // }
-    // // 设置filter生效
-    // if(pcap_setfilter(handle, &filter) == -1){
-    //     printf("set filter failed, %s \n", pcap_geterr(handle));
-    //     return -1;
-    // }
+    // 生成规则program
+    struct bpf_program filter;
+    char filter_exp[] = "port 9090";
+    if (pcap_compile(handle, &filter, filter_exp, 0, mask) == -1)
+    {
+        printf("bad filter");
+        return -1;
+    }
+    // 设置filter生效
+    if(pcap_setfilter(handle, &filter) == -1){
+        printf("set filter failed, %s \n", pcap_geterr(handle));
+        return -1;
+    }
     printf("start to loop\n");
     pcap_loop(handle, 0, header_payload_anly_handler, NULL);
 
