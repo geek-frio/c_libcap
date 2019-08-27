@@ -2,6 +2,9 @@
     "files.associations": {
         "find_device.h": "c",
         "packet_analyze.h": "c",
-        "capture_debug_handler.h": "c"
+        "capture_debug_handler.h": "c",
+        "nfnetlink.h": "c",
+        "netfilter.h": "c",
+        "types.h": "c"
     }
 }
