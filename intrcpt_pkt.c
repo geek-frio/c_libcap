@@ -1,11 +1,15 @@
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <string.h>
+#include <arpa/inet.h>
+
 #include <libnetfilter_queue/libnetfilter_queue.h>
 #include <libnetfilter_queue/pktbuff.h>
 #include <libnetfilter_queue/libnetfilter_queue_ipv4.h>
 #include <libnetfilter_queue/libnetfilter_queue_tcp.h>
 #include <libnetfilter_queue/linux_nfnetlink_queue.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <linux/ip.h>
 #include <linux/in.h>
 #include <linux/types.h>
@@ -14,7 +18,6 @@
 
 typedef struct nfq_handle nfqsocket;
 typedef struct nfq_q_handle qhandle;
-#define __BYTE_ORDER __LITTLE_ENDIAN
 
 /*
  * 初始化创建内核用户空间网络包通道 
@@ -37,27 +40,29 @@ int create_nfq_handle(uint16_t queue_num, uint8_t mode,
     nfqsocket *h;
     // nfq 队列handler
     qhandle *qh;
-    // 队列号
-    uint16_t queue_num;
     extern int errno;
+    char errbuf[128];
 
     // open nfqueue handler, 对应为套接字fd
     h = nfq_open();
     if (!h)
     {
-        fprintf(stderr, "nfq_open failed, error:%s", strerr(errno));
+        strerror(errno);
+        fprintf(stderr, "nfq_open failed, error:%s", errbuf);
         exit(-1);
     }
 
     // 如果nfqueue handler之前绑定过AF_INET, 进行解除绑定
     if (nfq_unbind_pf(h, AF_INET) < 0)
     {
-        fprintf(stderr, "unbind nfq_handler to AF_INET failed, err: %s", strerr(errno));
+        strerror(errno);
+        fprintf(stderr, "unbind nfq_handler to AF_INET failed, err: %s", errbuf);
         exit(-1);
     }
     if (nfq_bind_pf(h, AF_INET) < 0)
     {
-        fprintf(stderr, "start to bind nfq_handler AF_INET: err: %s", strerr(errno));
+        strerror(errno);
+        fprintf(stderr, "start to bind nfq_handler AF_INET: err: %s", errbuf);
         exit(-1);
     }
 
@@ -65,7 +70,8 @@ int create_nfq_handle(uint16_t queue_num, uint8_t mode,
     qh = nfq_create_queue(h, queue_num, nc, NULL);
     if (!qh)
     {
-        fprintf(stderr, "error met during create queue, error:%s\n", strerr(errno));
+        strerror(errno);
+        fprintf(stderr, "error met during create queue, error:%s\n", errbuf);
         exit(-1);
     }
 
@@ -73,7 +79,8 @@ int create_nfq_handle(uint16_t queue_num, uint8_t mode,
     // 0xffff == 2**16-1(65535长度)的buffer
     if (nfq_set_mode(qh, mode, 0xffff))
     {
-        fprintf(stderr, "set mode failed, err:%s", strerr(errno));
+        strerror(errno);
+        fprintf(stderr, "set mode failed, err:%s", errbuf);
         exit(-1);
     }
     *nskt = h;
@@ -85,12 +92,17 @@ int create_nfq_handle(uint16_t queue_num, uint8_t mode,
 // 目前的方式是对 tcp payload 中的内容进行reverse
 int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *nfad, void *data)
 {
+    printf("Has entered into callback!");
     unsigned char *rawData;
     int sendverdict;
 
+    extern int errno;
+    char errbuf[128];
+    // 获取netlink传递的packet的头信息
     struct nfqnl_msg_packet_hdr *ph = nfq_get_msg_packet_hdr(nfad);
-    // 读取payload数据放入rawData中
-    int len = nfq_tcp_get_payload(nfad, &rawData);
+
+    // 读取payload数据放入rawData中, 包含ip header的数据
+    int len = nfq_get_payload(nfad, &rawData);
     /**
      * family: 选择使用哪个family
      * data: 指向哪个packet data
@@ -102,13 +114,15 @@ int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *n
     struct iphdr *ip = nfq_ip_get_hdr(pkBuff);
     if (ip == NULL)
     {
-        fprintf(stderr, "get ip header from pktBuffer failed, err:%s", strerr(errno));
+        strerror(errno);
+        fprintf(stderr, "get ip header from pktBuffer failed, err:%s", errbuf);
         exit(-1);
     }
     // 读取tcp header之前要先调用此方法,否则不会分析tcp header
     if (nfq_ip_set_transport_header(pkBuff, ip) < 0)
     {
-        fprintf(stderr, "get tcp header info failed!");
+        strerror(errno);
+        fprintf(stderr, "get tcp header info failed!err:%s", errbuf);
         exit(-1);
     }
     // 判断协议是否为TCP,并进行更改
@@ -117,7 +131,8 @@ int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *n
         struct tcphdr *tcp = nfq_tcp_get_hdr(pkBuff);
         if (tcp == NULL)
         {
-            fprintf(stderr, "invalid error:%s", strerr(errno));
+            strerror(errno);
+            fprintf(stderr, "invalid error:%s", errbuf);
             exit(-1);
         }
         // get payload of pkBuff
