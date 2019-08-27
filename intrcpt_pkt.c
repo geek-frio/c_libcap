@@ -103,6 +103,7 @@ int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *n
 
     // 读取payload数据放入rawData中, 包含ip header的数据
     int len = nfq_get_payload(nfad, &rawData);
+    printf("ethernet payload length is:%d \n", len);
     /**
      * family: 选择使用哪个family
      * data: 指向哪个packet data
@@ -128,6 +129,7 @@ int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *n
     // 判断协议是否为TCP,并进行更改
     if (ip->protocol == IPPROTO_TCP)
     {
+        printf("确定是tcp protocol \n");
         struct tcphdr *tcp = nfq_tcp_get_hdr(pkBuff);
         if (tcp == NULL)
         {
@@ -138,12 +140,20 @@ int callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct nfq_data *n
         // get payload of pkBuff
         char *payload = (char *)nfq_tcp_get_payload(tcp, pkBuff);
         int payloadLen = nfq_tcp_get_payload_len(tcp, pkBuff);
+        printf("entire tcp payload is:%d\n", payloadLen);
         // 考虑tcp length 的大小要乘以4倍
-        payloadLen -= 4 * tcp->res1;
-
+        payloadLen -= 4 * (tcp->doff);
+        printf("tcp header length is:%d \n", tcp->doff);
+        printf("real tcp payload length is :%d\n", payloadLen);
         // do reverse operation
         // 仅限于ascii码顺序的字符
         int i;
+        printf("Start to print tcp payload content\n");
+        for (i = 0; i < payloadLen; i++)
+        {
+            printf("%c", payload[i]);
+        }
+        printf("\n");
         for (i = 0; i < payloadLen / 2; i++)
         {
             char tmp = payload[i];
