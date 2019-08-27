@@ -13,7 +13,7 @@
                 "/usr/include",
                 "${workspaceFolder}/**"
             ],
-            "defines": ["_POSIX_C_SOURCE 200809L", "_GNU_SOURCE"],
+            "defines": ["_POSIX_C_SOURCE 200809L", "_GNU_SOURCE", "__LITTLE_ENDIAN_BITFIELD"],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c99",
             "intelliSenseMode": "gcc-x64",

@@ -5,6 +5,10 @@
         "capture_debug_handler.h": "c",
         "nfnetlink.h": "c",
         "netfilter.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "in.h": "c",
+        "nfnetlink_queue.h": "c",
+        "libnetfilter_queue_tcp.h": "c",
+        "linux_nfnetlink_queue.h": "c"
     }
 }
